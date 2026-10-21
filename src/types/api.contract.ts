@@ -108,11 +108,9 @@ function __contractChecks(): void {
   const featureStat = null as unknown as Schemas['FeatureStat'] & { percentage: number }
   assignableTo<FeatureStat>()(featureStat)
 
-  // (3) ProviderCredential.created_at: a API inclui `created_at` (obrigatorio),
-  // mas o tipo manual do painel NAO declara esse campo. Como o gerado tem um
-  // SUPERCONJUNTO das propriedades do manual, o gerado continua ATRIBUIVEL ao
-  // manual (propriedades extras sao aceitas na atribuicao). Fica o registro de
-  // que o painel ainda nao mapeia `created_at`.
+  // (3) ProviderCredential.created_at: a API inclui `created_at` (obrigatorio)
+  // e o tipo manual do painel agora tambem o declara (obrigatorio). Os dois
+  // lados batem, entao o gerado continua ATRIBUIVEL ao manual sem narrow.
   const credential = null as unknown as Schemas['ProviderCredential']
   assignableTo<ProviderCredential>()(credential)
   const providers = null as unknown as Schemas['ProvidersResponse']

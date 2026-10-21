@@ -89,6 +89,8 @@ export interface ProviderCredential {
   key_hint: string
   last_verified_at: string | null
   last_error_kind: string | null
+  /** Quando a credencial foi criada (ISO 8601 em UTC). */
+  created_at: string
 }
 
 export interface ProvidersResponse {
