@@ -72,19 +72,30 @@ O empacotamento é determinístico (ordem, datas e dono fixos): o mesmo build, n
 
 ### Como o backend consome o release
 
-Na imagem Docker do backend, o painel passa a ser baixado do release, com versão e checksum fixos:
+O `Dockerfile` do [feedlens](https://github.com/IannCarvalho/feedlens) fixa a versão e o checksum do painel e baixa o release com `ADD --checksum` (o build falha se o arquivo não for exatamente o esperado):
 
 ```dockerfile
 ARG PANEL_VERSION=0.1.0
 ARG PANEL_SHA256=<conteúdo do .sha256 do release>
-RUN curl -fsSL -o /tmp/panel.tgz \
-      "https://github.com/IannCarvalho/feedlens-panel/releases/download/v${PANEL_VERSION}/feedlens-panel-v${PANEL_VERSION}.tgz" \
-    && echo "${PANEL_SHA256}  /tmp/panel.tgz" | sha256sum -c - \
-    && mkdir -p app/static/spa \
-    && tar -xzf /tmp/panel.tgz -C app/static/spa
+
+FROM alpine:3.21 AS panel
+ARG PANEL_VERSION
+ARG PANEL_SHA256
+ADD --checksum=sha256:${PANEL_SHA256} \
+    https://github.com/IannCarvalho/feedlens-panel/releases/download/v${PANEL_VERSION}/feedlens-panel-v${PANEL_VERSION}.tgz \
+    /tmp/panel.tgz
+RUN mkdir /spa && tar -xzf /tmp/panel.tgz -C /spa
 ```
 
-Esse trecho é a próxima etapa da migração e ainda não está no backend: hoje o `Dockerfile` do feedlens ainda compila a pasta `frontend/` dele.
+O tarball é extraído em `app/static/spa/` da imagem final. Para desenvolver só o backend, o feedlens traz `scripts/fetch_panel.py`, que faz o mesmo download com a mesma conferência. Quando sai um release novo, o workflow `panel-bump.yml` do feedlens abre sozinho o PR que sobe a versão (ele nunca faz merge).
+
+## Compatibilidade com a API
+
+| Painel | Backend (feedlens) |
+|---|---|
+| v0.1.x | a partir do commit `e2d3b69` (inclui edição de modelo e chave no cofre, correção de sentimento e spam, e o campo `unanalyzed` de `/api/stats`) |
+
+O backend ainda não tem versões. Ao publicar um painel que dependa de uma resposta nova da API, faça o PR do backend primeiro (compatível com o painel anterior), e registre aqui o commit mínimo.
 
 ## Estrutura
 
