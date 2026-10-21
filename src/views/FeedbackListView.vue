@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DataTable, { type DataTablePageEvent } from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -7,9 +7,11 @@ import Select from 'primevue/select'
 import Message from 'primevue/message'
 
 import { useFeedbacksStore } from '@/stores/feedbacks'
+import { useStatsStore } from '@/stores/stats'
 import { HttpError } from '@/lib/http'
 import { formatDate, sentimentMeta } from '@/lib/sentiment'
 import { analysisErrorLabel } from '@/lib/analysis'
+import ReanalyzePending from '@/components/ReanalyzePending.vue'
 import type {
   Feedback,
   FeedbackAnalysisFilter,
@@ -18,10 +20,13 @@ import type {
 } from '@/types/api'
 
 const store = useFeedbacksStore()
+const statsStore = useStatsStore()
 const route = useRoute()
 const router = useRouter()
 const error = ref<string | null>(null)
 const perPage = 20
+
+const unanalyzedCount = computed(() => statsStore.data?.unanalyzed ?? 0)
 
 const SENTIMENTS: readonly Sentiment[] = ['POSITIVO', 'NEGATIVO', 'INCONCLUSIVO']
 const SPAM_FILTERS: readonly FeedbackSpamFilter[] = ['exclude', 'include', 'only']
@@ -103,7 +108,17 @@ function truncate(text: string, max = 80): string {
   return text.length > max ? `${text.slice(0, max)}…` : text
 }
 
-onMounted(() => load(1))
+// A reanálise em lote mexe no estado dos feedbacks e na contagem de não
+// analisados: recarrega a lista atual e as estatísticas quando ela termina.
+async function onReanalyzed() {
+  await Promise.all([load(store.pagination?.page ?? 1), statsStore.load().catch(() => undefined)])
+}
+
+onMounted(() => {
+  load(1)
+  // Só para saber quantos estão sem análise (o aviso e o botão usam isso).
+  statsStore.load().catch(() => undefined)
+})
 </script>
 
 <template>
@@ -143,9 +158,19 @@ onMounted(() => load(1))
     </header>
 
     <Message v-if="analysisFilter === 'unanalyzed'" severity="info" :closable="false" class="fl-note">
-      Estes feedbacks chegaram, mas a IA não conseguiu analisá-los (por exemplo, limite de uso
-      atingido ou demora na resposta). O “Inconclusivo” deles é só o valor padrão, não uma
-      opinião. Abra um deles e use “Reanalisar com a IA” para tentar de novo.
+      <div class="fl-note__body">
+        <p class="fl-note__text">
+          Estes feedbacks chegaram, mas a IA não conseguiu analisá-los (por exemplo, limite de uso
+          atingido ou demora na resposta). O “Inconclusivo” deles é só o valor padrão, não uma
+          opinião. Abra um deles e use “Reanalisar com a IA” para tentar de novo, ou reanalise
+          todos de uma vez.
+        </p>
+        <ReanalyzePending
+          v-if="unanalyzedCount > 0"
+          :count="unanalyzedCount"
+          @finished="onReanalyzed"
+        />
+      </div>
     </Message>
 
     <Message v-if="spamFilter !== 'exclude'" severity="info" :closable="false" class="fl-note">
@@ -253,6 +278,18 @@ onMounted(() => load(1))
 }
 .fl-note {
   margin-bottom: 1rem;
+}
+.fl-note__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+.fl-note__text {
+  margin: 0;
+  flex: 1;
+  min-width: 16rem;
 }
 .fl-spam-chip {
   margin-left: 0.4rem;

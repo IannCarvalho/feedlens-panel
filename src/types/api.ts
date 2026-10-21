@@ -51,6 +51,26 @@ export interface FeedbackListResponse {
 /** O que a lista faz com o que a IA marcou como spam (`?spam=`). */
 export type FeedbackSpamFilter = 'exclude' | 'include' | 'only'
 
+/** Por que a reanálise em lote parou antes de terminar (`null` = seguiu normal). */
+export type ReanalyzeStoppedReason = 'provider_error'
+
+/**
+ * Resposta de POST /api/feedbacks/reanalyze-pending: um lote de reanálise dos
+ * feedbacks que a IA não tinha conseguido analisar.
+ */
+export interface ReanalyzePendingResponse {
+  /** Quantos feedbacks este lote tentou reanalisar. */
+  processed: number
+  /** Quantos a IA conseguiu analisar neste lote. */
+  analyzed: number
+  /** Quantos continuaram sem análise neste lote. */
+  failed: number
+  /** Quantos ainda estão sem análise depois deste lote. */
+  remaining: number
+  /** Preenchido quando o lote parou por falha do provedor. */
+  stopped_reason: ReanalyzeStoppedReason | null
+}
+
 /* ---- Cofre de provedores (BYOK do operador) ---- */
 
 export interface ProviderCatalogEntry {

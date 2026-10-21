@@ -7,6 +7,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 
 import SentimentChart from '@/components/SentimentChart.vue'
 import FeaturesChart from '@/components/FeaturesChart.vue'
+import ReanalyzePending from '@/components/ReanalyzePending.vue'
 import { useStatsStore } from '@/stores/stats'
 import { HttpError } from '@/lib/http'
 import { formatDate, sentimentMeta } from '@/lib/sentiment'
@@ -17,6 +18,11 @@ const error = ref<string | null>(null)
 const stats = computed(() => store.data)
 const hasData = computed(() => stats.value?.has_data === true)
 const unanalyzed = computed(() => stats.value?.unanalyzed ?? 0)
+
+// Depois de reanalisar em lote, recarrega os números e gráficos desta tela.
+async function onReanalyzed() {
+  await store.load().catch(() => undefined)
+}
 
 onMounted(async () => {
   try {
@@ -47,14 +53,22 @@ function truncate(text: string, max = 60): string {
       :closable="false"
       class="fl-unanalyzed"
     >
-      <strong>{{ unanalyzed }}</strong>
-      {{ unanalyzed === 1 ? 'feedback não foi analisado' : 'feedbacks não foram analisados' }} pela
-      IA (cota excedida, tempo esgotado etc.).
-      {{ unanalyzed === 1 ? 'Ele fica' : 'Eles ficam' }} fora dos números e gráficos desta página e
-      {{ unanalyzed === 1 ? 'continua' : 'continuam' }} na lista de feedbacks.
-      <RouterLink :to="{ path: '/feedbacks', query: { analysis: 'unanalyzed' } }" class="fl-link">
-        Ver e reanalisar
-      </RouterLink>
+      <div class="fl-unanalyzed__body">
+        <span class="fl-unanalyzed__text">
+          <strong>{{ unanalyzed }}</strong>
+          {{ unanalyzed === 1 ? 'feedback não foi analisado' : 'feedbacks não foram analisados' }}
+          pela IA (cota excedida, tempo esgotado etc.).
+          {{ unanalyzed === 1 ? 'Ele fica' : 'Eles ficam' }} fora dos números e gráficos desta
+          página e {{ unanalyzed === 1 ? 'continua' : 'continuam' }} na lista de feedbacks.
+          <RouterLink
+            :to="{ path: '/feedbacks', query: { analysis: 'unanalyzed' } }"
+            class="fl-link"
+          >
+            Ver na lista
+          </RouterLink>
+        </span>
+        <ReanalyzePending :count="unanalyzed" @finished="onReanalyzed" />
+      </div>
     </Message>
 
     <div v-if="store.loading" class="fl-loading">
@@ -167,6 +181,17 @@ function truncate(text: string, max = 60): string {
 }
 .fl-unanalyzed {
   margin-bottom: 1rem;
+}
+.fl-unanalyzed__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+}
+.fl-unanalyzed__text {
+  flex: 1;
+  min-width: 16rem;
 }
 .fl-cards {
   display: grid;

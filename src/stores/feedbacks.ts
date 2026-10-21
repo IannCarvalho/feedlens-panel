@@ -8,6 +8,7 @@ import type {
   FeedbackListResponse,
   FeedbackSpamFilter,
   Pagination,
+  ReanalyzePendingResponse,
   Sentiment,
 } from '@/types/api'
 
@@ -64,5 +65,30 @@ export const useFeedbacksStore = defineStore('feedbacks', () => {
     return http.post<Feedback>(`/api/feedbacks/${id}/reanalyze`, undefined, true)
   }
 
-  return { items, pagination, loading, list, getById, review, setSpam, setSentiment, reanalyze }
+  /**
+   * Reanalisa um lote de feedbacks que a IA ainda não analisou (padrão 5 por
+   * chamada). A tela repete a chamada até `remaining` chegar a zero; cada
+   * chamada espera as respostas da IA, então pode levar alguns segundos.
+   */
+  async function reanalyzePending(limit = 5): Promise<ReanalyzePendingResponse> {
+    const size = Math.min(10, Math.max(1, Math.trunc(limit)))
+    return http.post<ReanalyzePendingResponse>(
+      '/api/feedbacks/reanalyze-pending',
+      { limit: size },
+      true,
+    )
+  }
+
+  return {
+    items,
+    pagination,
+    loading,
+    list,
+    getById,
+    review,
+    setSpam,
+    setSentiment,
+    reanalyze,
+    reanalyzePending,
+  }
 })

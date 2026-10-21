@@ -97,6 +97,12 @@ O tarball é extraído em `app/static/spa/` da imagem final. Para desenvolver s�
 
 O backend ainda não tem versões. Ao publicar um painel que dependa de uma resposta nova da API, faça o PR do backend primeiro (compatível com o painel anterior), e registre aqui o commit mínimo.
 
+### Reanalisar todos os não analisados
+
+O botão "Reanalisar todos os não analisados" (na Visão geral e na lista de feedbacks, junto do aviso de não analisados) depende de um endpoint novo do backend. **Essa funcionalidade só funciona com a versão do backend que já traz esse endpoint**; sem ele, o botão aparece mas a reanálise em lote falha com uma mensagem de erro.
+
+Requisito: o backend ([feedlens](https://github.com/IannCarvalho/feedlens)) precisa estar com o PR correspondente mergeado (o que acrescenta a reanálise em lote dos feedbacks pendentes). Publique e mergeie o backend **antes** de lançar um release do painel que inclua este botão. Quando o commit mínimo for conhecido, registre-o na tabela de compatibilidade acima.
+
 ## Estrutura
 
 ```
