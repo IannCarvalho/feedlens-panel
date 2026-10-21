@@ -6,6 +6,7 @@
   "description": "Interface do FeedLens em Vue 3 + Vite + PrimeVue (TypeScript).",
   "scripts": {
     "dev": "vite",
+    "gen:api": "node scripts/gen-api-types.mjs",
     "build": "vue-tsc --build --force && vite build",
     "preview": "vite preview",
     "typecheck": "vue-tsc --build --force",
@@ -34,6 +35,7 @@
     "eslint": "^9.17.0",
     "eslint-plugin-vue": "^9.32.0",
     "jiti": "^2.7.0",
+    "openapi-typescript": "7.13.0",
     "prettier": "^3.4.2",
     "typescript": "~5.8.3",
     "vite": "^6.0.5",

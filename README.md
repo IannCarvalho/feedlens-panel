@@ -114,13 +114,31 @@ src/views/               Dashboard, lista e detalhe, provedores, login
 src/components/          gráficos e marca
 src/theme/, assets/      tema do PrimeVue e CSS
 src/lib/                 cliente HTTP, rótulos de sentimento e de análise
-src/types/api.ts         tipos das respostas da API do backend
+src/types/api.ts         tipos das respostas da API do backend (escritos à mão; fonte do app)
+src/types/api.generated.ts  tipos gerados do contrato OpenAPI (gerado, não edite)
+src/types/api.contract.ts   checagem só-de-tipos: gerado × escrito à mão (não roda no app)
+api-spec.version         SHA do backend ao qual a spec OpenAPI está fixada
+scripts/gen-api-types.mjs  gera api.generated.ts (npm run gen:api)
 scripts/package.sh       empacota dist/ para o release
 ```
 
 ## Contrato com a API
 
-`src/types/api.ts` espelha, **à mão**, as respostas do backend. Quando uma mudança do backend altera uma resposta, este arquivo precisa mudar junto, em um PR aqui. Gerar esses tipos a partir de um contrato OpenAPI é uma etapa futura da migração.
+`src/types/api.ts` espelha, **à mão**, as respostas do backend. Esse arquivo **segue sendo a fonte que o app usa**: views e stores importam dele. Quando uma mudança do backend altera uma resposta, ele precisa mudar junto, em um PR aqui.
+
+Para não deixar esse espelho divergir do backend em silêncio, o painel também **gera** tipos a partir do contrato OpenAPI do backend ([feedlens](https://github.com/IannCarvalho/feedlens), arquivo `openapi.yaml`) e confere, só em tempo de compilação, que as respostas geradas cabem nos tipos escritos à mão. Migrar o app para consumir os tipos gerados é uma decisão futura; por ora os dois coexistem.
+
+### Regenerar os tipos do contrato
+
+```powershell
+npm run gen:api
+```
+
+Isso lê a spec OpenAPI do backend — **fixada a um commit** no arquivo `api-spec.version` (na raiz) — e grava `src/types/api.generated.ts` (arquivo commitado, com cabeçalho "gerado, não edite"). O script é Node puro (não precisa de `bash`/`curl`) e é idempotente: rodar duas vezes gera exatamente o mesmo arquivo.
+
+A checagem de compatibilidade vive em `src/types/api.contract.ts` — um arquivo **só de tipos, não importado pelo app**, que o `npm run typecheck` usa para falhar se os tipos gerados deixarem de ser atribuíveis aos escritos à mão. Diferenças de forma já conhecidas e aceitas estão documentadas lá; se o backend introduzir **outra** divergência, o typecheck quebra em vez de passar despercebido.
+
+**Quando o backend mudar o contrato:** suba o SHA em `api-spec.version` para o novo commit do backend, rode `npm run gen:api` e commite o `src/types/api.generated.ts` resultante. O CI regenera e falha se o arquivo commitado estiver diferente da spec fixada — ou seja, o SHA fixado e o arquivo gerado têm de contar a mesma história.
 
 ## Histórico
 
