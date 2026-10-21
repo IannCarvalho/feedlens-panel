@@ -66,46 +66,15 @@ function __contractChecks(): void {
 
   /* ---- Divergencias de forma CONHECIDAS e aceitas ---- */
 
-  // (1) DashboardStats.unanalyzed: opcional no painel, e tambem opcional na spec
-  // (nao esta em `required`), embora a API SEMPRE devolva o campo. Opcional ->
-  // opcional e atribuivel; esse campo nao exige tratamento especial.
-  //
-  // (4) DashboardStats.sentiment_counts: no painel SentimentCounts tem
-  // POSITIVO/NEGATIVO/INCONCLUSIVO OBRIGATORIOS; na spec o schema SentimentCounts
-  // nao lista nenhum em `required` (e ainda tem additionalProperties: true), ou
-  // seja, sao OPCIONAIS. Entao o sentiment_counts gerado NAO e atribuivel direto
-  // ao manual. Mesma natureza da divergencia (2) abaixo: a spec sub-restringe um
-  // objeto que o painel trata como completo.
-  //
-  // (2)+(4)+(5) dentro de DashboardStats: top_features e FeatureStat[]
-  // (percentage obrigatoria no painel, opcional na spec -- ver (2)),
-  // sentiment_counts cai no caso (4), e sentiment_percentages no caso (5) --
-  // o painel o tipa como Record<keyof SentimentCounts, number> (chaves
-  // POSITIVO/NEGATIVO/INCONCLUSIVO obrigatorias), mas a spec usa
-  // additionalProperties, que gera { [key: string]: number } (sem exigir essas
-  // chaves). Afirmamos a forma NARROWED de DashboardStats, com esses tres campos
-  // no formato do painel, para documentar as divergencias sem afrouxar o teste.
-  // Se a spec passar a marcar esses campos/chaves como required, as narrows
-  // somem.
-  type DashboardStatsNarrowed = Omit<
-    Schemas['DashboardStats'],
-    'sentiment_counts' | 'sentiment_percentages' | 'top_features'
-  > & {
-    sentiment_counts?: DashboardStats['sentiment_counts']
-    sentiment_percentages?: DashboardStats['sentiment_percentages']
-    top_features?: (Schemas['FeatureStat'] & { percentage: number })[]
-  }
-  const stats = null as unknown as DashboardStatsNarrowed
+  // Estatisticas do painel: desde que a spec do backend marca como obrigatorios
+  // o `percentage` de FeatureStat e as chaves POSITIVO/NEGATIVO/INCONCLUSIVO de
+  // sentiment_counts e sentiment_percentages (os tres que a API sempre devolve
+  // quando ha dados), os tipos gerados cabem direto nos manuais, sem ajuste.
+  // DashboardStats.unanalyzed e opcional nos dois lados.
+  const stats = null as unknown as Schemas['DashboardStats']
   assignableTo<DashboardStats>()(stats)
 
-  // (2) FeatureStat.percentage: OBRIGATORIO no painel, OPCIONAL na API (a spec
-  // nao o lista em `required`). Logo o FeatureStat gerado NAO e atribuivel
-  // direto ao manual -- um objeto que siga a spec pode omitir `percentage`, e o
-  // painel o exige. Afirmamos a forma NARROWED: com `percentage` presente, o
-  // gerado cabe no manual. Isto documenta a divergencia em vez de afrouxar o
-  // teste. Se o painel passar a tratar `percentage` como opcional (ou a API a
-  // tornar obrigatoria), esta narrow deixa de ser necessaria.
-  const featureStat = null as unknown as Schemas['FeatureStat'] & { percentage: number }
+  const featureStat = null as unknown as Schemas['FeatureStat']
   assignableTo<FeatureStat>()(featureStat)
 
   // (3) ProviderCredential.created_at: a API inclui `created_at` (obrigatorio)
