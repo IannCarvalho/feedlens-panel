@@ -94,6 +94,7 @@ O tarball é extraído em `app/static/spa/` da imagem final. Para desenvolver s�
 | Painel | Backend (feedlens) |
 |---|---|
 | v0.1.x | a partir do commit `e2d3b69` (inclui edição de modelo e chave no cofre, correção de sentimento e spam, e o campo `unanalyzed` de `/api/stats`) |
+| v0.2.x | a partir do commit `a2f11f6` (acrescenta o endpoint `POST /api/feedbacks/reanalyze-pending`, usado pelo botão "Reanalisar todos os não analisados") |
 
 O backend ainda não tem versões. Ao publicar um painel que dependa de uma resposta nova da API, faça o PR do backend primeiro (compatível com o painel anterior), e registre aqui o commit mínimo.
 
@@ -101,7 +102,7 @@ O backend ainda não tem versões. Ao publicar um painel que dependa de uma resp
 
 O botão "Reanalisar todos os não analisados" (na Visão geral e na lista de feedbacks, junto do aviso de não analisados) depende de um endpoint novo do backend. **Essa funcionalidade só funciona com a versão do backend que já traz esse endpoint**; sem ele, o botão aparece mas a reanálise em lote falha com uma mensagem de erro.
 
-Requisito: o backend ([feedlens](https://github.com/IannCarvalho/feedlens)) precisa estar com o PR correspondente mergeado (o que acrescenta a reanálise em lote dos feedbacks pendentes). Publique e mergeie o backend **antes** de lançar um release do painel que inclua este botão. Quando o commit mínimo for conhecido, registre-o na tabela de compatibilidade acima.
+Requisito: o backend ([feedlens](https://github.com/IannCarvalho/feedlens)) precisa estar com o PR correspondente mergeado (o que acrescenta a reanálise em lote dos feedbacks pendentes). Publique e mergeie o backend **antes** de lançar um release do painel que inclua este botão. O commit mínimo do backend é `a2f11f6` (`a2f11f6d0e07875408806a11577e693ac09110f3`, PR [#62](https://github.com/IannCarvalho/feedlens/pull/62)), que introduz o endpoint `POST /api/feedbacks/reanalyze-pending`; veja a tabela de compatibilidade acima.
 
 ## Estrutura
 
