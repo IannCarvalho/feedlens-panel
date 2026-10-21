@@ -68,7 +68,7 @@ O workflow `release.yml` confere que a tag bate com o `package.json`, compila e 
 - `feedlens-panel-v<versão>.tgz`: o conteúdo de `dist/` na raiz do tarball;
 - `feedlens-panel-v<versão>.tgz.sha256`: checksum no formato do `sha256sum -c`.
 
-O empacotamento é determinístico (ordem, datas e dono fixos): o mesmo build gera o mesmo checksum.
+O empacotamento é determinístico (ordem, datas e dono fixos): o mesmo build, no mesmo ambiente, gera o mesmo checksum. O checksum que vale é o do release, gerado no runner Linux do GitHub Actions. Um build local no Windows gera outro, porque o Git converte o fim de linha dos fontes; use o `.sha256` do release, não um calculado localmente.
 
 ### Como o backend consome o release
 
