@@ -8,6 +8,12 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # @primeuix/themes 3.x pertence ao PrimeVue 5, que ainda nao foi lancado.
+      # O painel usa PrimeVue 4.5.5, cujo tema e a linha @primeuix/themes 1.x.
+      # Ignoramos o bump de versao MAJOR ate migrar para o PrimeVue 5.
+      - dependency-name: "@primeuix/themes"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
