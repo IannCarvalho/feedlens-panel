@@ -2,7 +2,7 @@
  * ARQUIVO GERADO -- NAO EDITE A MAO.
  *
  * Gerado por scripts/gen-api-types.mjs a partir do contrato OpenAPI do
- * backend (feedlens), fixado ao commit ed534ef0d50e347728cafb68d8e9b3c4c8f0d474.
+ * backend (feedlens), fixado ao commit 47e3ee66648279273db404a74bb2eec4c8e6b3c5.
  * Para regenerar: suba o SHA em api-spec.version e rode `npm run gen:api`.
  */
 
@@ -1301,22 +1301,26 @@ export interface components {
             total_feedbacks?: number;
             sentiment_counts?: components["schemas"]["SentimentCounts"];
             sentiment_percentages?: {
+                POSITIVO: number;
+                NEGATIVO: number;
+                INCONCLUSIVO: number;
+            } & {
                 [key: string]: number;
             };
             top_features?: components["schemas"]["FeatureStat"][];
             recent_feedbacks?: components["schemas"]["Feedback"][];
         };
         SentimentCounts: {
-            POSITIVO?: number;
-            NEGATIVO?: number;
-            INCONCLUSIVO?: number;
+            POSITIVO: number;
+            NEGATIVO: number;
+            INCONCLUSIVO: number;
         } & {
             [key: string]: unknown;
         };
         FeatureStat: {
             code: string;
             count: number;
-            percentage?: number;
+            percentage: number;
         } & {
             [key: string]: unknown;
         };
