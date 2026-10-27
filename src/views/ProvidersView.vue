@@ -22,6 +22,23 @@ const sorted = computed(() =>
   [...store.credentials].sort((a, b) => a.priority - b.priority),
 )
 
+/* O backend devolve o motivo em "código" (auth, not_found, rate_limit...).
+   Na tela, quem opera precisa ler o que aconteceu sem adivinhar a sigla. */
+const ERROR_LABELS: Record<string, string> = {
+  auth: 'chave recusada',
+  not_found: 'modelo indisponível',
+  rate_limit: 'cota excedida',
+  timeout: 'tempo esgotado',
+  connection: 'sem conexão',
+  bad_request: 'pedido inválido',
+  empty: 'resposta vazia',
+  error: 'falha na chamada',
+}
+
+function errorLabel(kind: string | null): string {
+  return (kind && ERROR_LABELS[kind]) || kind || ''
+}
+
 /* --- Formulário de cadastro --- */
 const showDialog = ref(false)
 const form = ref<{ provider: ProviderId; model: string; api_key: string }>({
@@ -307,7 +324,7 @@ onMounted(async () => {
                 />
                 <Tag
                   v-else-if="c.last_error_kind"
-                  :value="c.last_error_kind"
+                  :value="errorLabel(c.last_error_kind)"
                   severity="warn"
                 />
               </div>
