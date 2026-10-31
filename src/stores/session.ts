@@ -12,6 +12,9 @@ import type { LoginResponse, SessionResponse } from '@/types/api'
 export const useSessionStore = defineStore('session', () => {
   const authEnabled = ref(false)
   const authenticated = ref(false)
+  // undefined = ainda não se sabe (ou backend antigo que não envia o campo);
+  // só `false` dispara o aviso de "nenhum provedor configurado".
+  const analysisConfigured = ref<boolean | undefined>(undefined)
   const loaded = ref(false)
 
   let inflight: Promise<SessionResponse> | null = null
@@ -24,6 +27,7 @@ export const useSessionStore = defineStore('session', () => {
         .then((state) => {
           authEnabled.value = state.auth_enabled
           authenticated.value = state.authenticated
+          analysisConfigured.value = state.analysis_configured
           setCsrfToken(state.csrf_token)
           loaded.value = true
           return state
@@ -52,5 +56,5 @@ export const useSessionStore = defineStore('session', () => {
     }
   }
 
-  return { authEnabled, authenticated, loaded, load, login }
+  return { authEnabled, authenticated, analysisConfigured, loaded, load, login }
 })

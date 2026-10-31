@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
+import Message from 'primevue/message'
 
 import BrandLogo from '@/components/BrandLogo.vue'
 import { useSessionStore } from '@/stores/session'
@@ -11,6 +12,10 @@ const isDark = ref(false)
 
 // Telas "nuas" (o login) não têm a barra lateral do painel.
 const bare = computed(() => route.meta.layout === 'bare')
+
+// Só quando o servidor diz explicitamente que não há provedor de IA. Um
+// backend antigo (campo ausente) deixa isto `undefined` e nenhum aviso aparece.
+const noProvider = computed(() => session.analysisConfigured === false)
 
 const nav = [
   { to: '/', label: 'Visão geral', icon: 'pi pi-chart-bar' },
@@ -79,6 +84,18 @@ onMounted(() => {
       </div>
     </aside>
     <main class="fl-main">
+      <Message
+        v-if="noProvider"
+        severity="warn"
+        :closable="false"
+        class="fl-no-provider"
+      >
+        <strong>Nenhum provedor de IA configurado.</strong>
+        Os feedbacks enviados não estão sendo analisados — e o formulário público
+        não consegue registrá-los até haver uma chave. Cadastre uma chave em
+        <RouterLink to="/providers">Provedores de IA</RouterLink> ou defina uma no
+        servidor.
+      </Message>
       <RouterView />
     </main>
   </div>
@@ -173,6 +190,9 @@ onMounted(() => {
 .fl-main {
   padding: 2rem 2.25rem;
   overflow-x: hidden;
+}
+.fl-no-provider {
+  margin-bottom: 1.5rem;
 }
 @media (max-width: 720px) {
   .fl-shell {

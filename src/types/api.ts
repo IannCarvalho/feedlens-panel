@@ -122,6 +122,12 @@ export interface SessionResponse {
   auth_enabled: boolean
   /** Pode usar o painel: logado, ou login desligado. */
   authenticated: boolean
+  /**
+   * Há ao menos um provedor de IA utilizável no servidor (chave de ambiente ou
+   * salva no cofre). Opcional: um backend mais antigo não envia o campo, e
+   * nesse caso o painel não mostra o aviso de "sem provedor" (sem falso alarme).
+   */
+  analysis_configured?: boolean
   csrf_token: string
 }
 
