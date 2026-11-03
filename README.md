@@ -98,7 +98,7 @@ O tarball é extraído em `app/static/spa/` da imagem final. Para desenvolver s�
 | v0.1.x | a partir do commit `e2d3b69` (inclui edição de modelo e chave no cofre, correção de sentimento e spam, e o campo `unanalyzed` de `/api/stats`) |
 | v0.2.x | a partir do commit `a2f11f6` (acrescenta o endpoint `POST /api/feedbacks/reanalyze-pending`, usado pelo botão "Reanalisar todos os não analisados") |
 | v0.2.1 | mesmo requisito do v0.2.x; só traduz o `last_error_kind` da chave salva ("auth" → "chave recusada", "not_found" → "modelo indisponível") |
-| estado atual (não lançado) | o aviso global "nenhum provedor de IA configurado" ([PR #20](https://github.com/IannCarvalho/feedlens-panel/pull/20) do painel) usa o campo `analysis_configured` em `GET /auth/session`, que o backend passou a expor no commit `28badde` ([PR #71](https://github.com/IannCarvalho/feedlens/pull/71)); sem esse campo o painel não mostra o aviso (sem falso alarme). A spec OpenAPI está fixada em `28badde` (veja `api-spec.version`) |
+| estado atual (não lançado) | o aviso global "nenhum provedor de IA configurado" ([PR #20](https://github.com/IannCarvalho/feedlens-panel/pull/20) do painel) usa o campo `analysis_configured` em `GET /auth/session`, que o backend passou a expor no commit `8491474` ([PR #71](https://github.com/IannCarvalho/feedlens/pull/71)); sem esse campo o painel não mostra o aviso (sem falso alarme). A spec OpenAPI está fixada em `28badde` (veja `api-spec.version`) |
 
 O backend ainda não tem versões. Ao publicar um painel que dependa de uma resposta nova da API, faça o PR do backend primeiro (compatível com o painel anterior), e registre aqui o commit mínimo.
 
