@@ -46,6 +46,8 @@ Entre com a senha definida em `DASHBOARD_PASSWORD` no `.env` do backend.
 | `npm run preview` | Serve o `dist/` localmente (sem API) |
 | `bash scripts/package.sh` | Empacota `dist/` em `release/` (tarball + checksum) |
 
+> `scripts/package.sh` é um script **bash** (usa `tar`/`gzip`/`sha256sum`). No Windows ele exige **Git Bash** ou **WSL**; não roda no PowerShell/`cmd` puro. O CI roda em Linux, então lá o `bash scripts/package.sh` funciona direto.
+
 ## Variáveis de ambiente
 
 | Variável | Onde | Padrão | Uso |
@@ -96,6 +98,7 @@ O tarball é extraído em `app/static/spa/` da imagem final. Para desenvolver s�
 | v0.1.x | a partir do commit `e2d3b69` (inclui edição de modelo e chave no cofre, correção de sentimento e spam, e o campo `unanalyzed` de `/api/stats`) |
 | v0.2.x | a partir do commit `a2f11f6` (acrescenta o endpoint `POST /api/feedbacks/reanalyze-pending`, usado pelo botão "Reanalisar todos os não analisados") |
 | v0.2.1 | mesmo requisito do v0.2.x; só traduz o `last_error_kind` da chave salva ("auth" → "chave recusada", "not_found" → "modelo indisponível") |
+| estado atual (não lançado) | o aviso global "nenhum provedor de IA configurado" ([PR #20](https://github.com/IannCarvalho/feedlens-panel/pull/20) do painel) usa o campo `analysis_configured` em `GET /auth/session`, que o backend passou a expor no commit `8491474` ([PR #71](https://github.com/IannCarvalho/feedlens/pull/71)); sem esse campo o painel não mostra o aviso (sem falso alarme). A spec OpenAPI está fixada em `28badde` (veja `api-spec.version`) |
 
 O backend ainda não tem versões. Ao publicar um painel que dependa de uma resposta nova da API, faça o PR do backend primeiro (compatível com o painel anterior), e registre aqui o commit mínimo.
 
@@ -115,7 +118,7 @@ src/views/               Dashboard, lista e detalhe, provedores, login
 src/components/          gráficos e marca
 src/theme/, assets/      tema do PrimeVue e CSS
 src/lib/                 cliente HTTP, rótulos de sentimento e de análise
-src/types/api.ts         tipos das respostas da API do backend (escritos à mão; fonte do app)
+src/types/api.ts         tipos das respostas da API (aliases dos gerados; fonte que o app importa)
 src/types/api.generated.ts  tipos gerados do contrato OpenAPI (gerado, não edite)
 src/types/api.contract.ts   checagem só-de-tipos: gerado × escrito à mão (não roda no app)
 api-spec.version         SHA do backend ao qual a spec OpenAPI está fixada
@@ -125,9 +128,31 @@ scripts/package.sh       empacota dist/ para o release
 
 ## Contrato com a API
 
-`src/types/api.ts` espelha, **à mão**, as respostas do backend. Esse arquivo **segue sendo a fonte que o app usa**: views e stores importam dele. Quando uma mudança do backend altera uma resposta, ele precisa mudar junto, em um PR aqui.
+O painel **gera** seus tipos a partir do contrato OpenAPI do backend
+([feedlens](https://github.com/IannCarvalho/feedlens), arquivo `openapi.yaml`),
+fixado a um commit em `api-spec.version`. O resultado fica em
+`src/types/api.generated.ts` (arquivo commitado, com cabeçalho "gerado, não
+edite").
 
-Para não deixar esse espelho divergir do backend em silêncio, o painel também **gera** tipos a partir do contrato OpenAPI do backend ([feedlens](https://github.com/IannCarvalho/feedlens), arquivo `openapi.yaml`) e confere, só em tempo de compilação, que as respostas geradas cabem nos tipos escritos à mão. Migrar o app para consumir os tipos gerados é uma decisão futura; por ora os dois coexistem.
+`src/types/api.ts` é a **fonte que o app usa** — views e stores importam dele —,
+mas agora ele só **re-exporta aliases dos tipos gerados**, mantendo os mesmos
+nomes de antes. Assim o contrato OpenAPI do backend passou a ser a fonte da
+verdade: migrar o app para consumir os tipos gerados deixou de ser "decisão
+futura" e já está feito.
+
+Onde um tipo gerado **não** reflete o que o painel precisa, o tipo é mantido à
+mão **só naquele caso**, com o porquê documentado ao lado. Hoje há **uma**
+exceção: `SessionResponse`. A spec marca `analysis_configured` como
+**obrigatório**, mas o painel precisa tolerar um backend mais antigo que ainda
+não envia o campo (sem ele, o painel simplesmente não mostra o aviso de "nenhum
+provedor", em vez de dar um falso alarme), então ali o campo é **opcional**.
+
+A checagem de compatibilidade vive em `src/types/api.contract.ts` — um arquivo
+**só de tipos, não importado pelo app**, que o `npm run typecheck` usa. Como os
+aliases são o próprio tipo gerado, não há o que divergir neles; a única
+afirmação que ainda protege algo é a de `SessionResponse`: o typecheck quebra
+se o backend mudar o **tipo** de `analysis_configured` (ou remover outro campo
+que o painel lê), em vez de passar despercebido.
 
 ### Regenerar os tipos do contrato
 
@@ -135,11 +160,16 @@ Para não deixar esse espelho divergir do backend em silêncio, o painel também
 npm run gen:api
 ```
 
-Isso lê a spec OpenAPI do backend — **fixada a um commit** no arquivo `api-spec.version` (na raiz) — e grava `src/types/api.generated.ts` (arquivo commitado, com cabeçalho "gerado, não edite"). O script é Node puro (não precisa de `bash`/`curl`) e é idempotente: rodar duas vezes gera exatamente o mesmo arquivo.
+Isso lê a spec OpenAPI do backend — **fixada a um commit** no arquivo
+`api-spec.version` (na raiz) — e grava `src/types/api.generated.ts`. O script é
+Node puro (não precisa de `bash`/`curl`) e é idempotente: rodar duas vezes gera
+exatamente o mesmo arquivo.
 
-A checagem de compatibilidade vive em `src/types/api.contract.ts` — um arquivo **só de tipos, não importado pelo app**, que o `npm run typecheck` usa para falhar se os tipos gerados deixarem de ser atribuíveis aos escritos à mão. Diferenças de forma já conhecidas e aceitas estão documentadas lá; se o backend introduzir **outra** divergência, o typecheck quebra em vez de passar despercebido.
-
-**Quando o backend mudar o contrato:** suba o SHA em `api-spec.version` para o novo commit do backend, rode `npm run gen:api` e commite o `src/types/api.generated.ts` resultante. O CI regenera e falha se o arquivo commitado estiver diferente da spec fixada — ou seja, o SHA fixado e o arquivo gerado têm de contar a mesma história.
+**Quando o backend mudar o contrato:** suba o SHA em `api-spec.version` para o
+novo commit do backend, rode `npm run gen:api` e commite o
+`src/types/api.generated.ts` resultante. O CI regenera e falha se o arquivo
+commitado estiver diferente da spec fixada — ou seja, o SHA fixado e o arquivo
+gerado têm de contar a mesma história.
 
 ## Histórico
 

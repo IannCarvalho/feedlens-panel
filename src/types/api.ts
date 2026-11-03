@@ -1,122 +1,78 @@
 /*
- * Tipos do contrato da API do FeedLens. Espelham o que o backend Flask
- * devolve hoje (app/routes/api.py e settings_api.py). Mantidos à mão por ora;
- * quando o backend expuser OpenAPI, dá para gerar isto automaticamente.
+ * Tipos do contrato da API do FeedLens.
+ *
+ * Desde o PR da migração do contrato, estes nomes são ALIASES derivados dos
+ * tipos GERADOS a partir do OpenAPI do backend (`api.generated.ts`, produzido
+ * por `npm run gen:api` a partir da spec fixada em `api-spec.version`). Os
+ * nomes exportados aqui seguem os mesmos de antes, então views e stores não
+ * mudam: elas continuam importando de `@/types/api`. A fonte da verdade passou
+ * a ser o contrato OpenAPI; para atualizar, suba o SHA em `api-spec.version` e
+ * rode `npm run gen:api`.
+ *
+ * Onde um tipo gerado NÃO reflete o que o app precisa, mantém-se o tipo à mão
+ * SÓ naquele caso, com o porquê documentado ao lado (hoje: `SessionResponse`).
  */
+import type { components } from './api.generated'
 
-export type Sentiment = 'POSITIVO' | 'NEGATIVO' | 'INCONCLUSIVO'
-export type ProviderId = 'openai' | 'anthropic' | 'gemini' | 'groq' | 'openrouter'
+type Schemas = components['schemas']
 
-export interface RequestedFeature {
-  code: string
-  reason: string
-}
+export type Sentiment = Schemas['Sentiment']
+/** Enum de provedores derivado do contrato (backend: app/llm/providers.py). */
+export type ProviderId = Schemas['ProviderId']
 
-export interface Feedback {
-  id: string
-  feedback: string
-  sentiment: Sentiment | null
-  is_spam: boolean
-  /** 'unanalyzed' = a IA não respondeu; sentimento e spam são só o padrão. */
-  analysis_status: AnalysisStatus
-  /** Motivo da última falha da IA (rate_limit, timeout...). */
-  analysis_error: string | null
-  /** 'provedor/modelo' que analisou; null se não analisado. */
-  analyzed_by: string | null
-  created_at: string
-  requested_features: RequestedFeature[]
-}
+export type RequestedFeature = Schemas['RequestedFeature']
 
-export type AnalysisStatus = 'analyzed' | 'unanalyzed'
+export type Feedback = Schemas['Feedback']
+
+export type AnalysisStatus = Schemas['AnalysisStatus']
 /** Filtro da lista (`?analysis=`): tudo ou só os não analisados. */
-export type FeedbackAnalysisFilter = 'any' | 'unanalyzed'
+export type FeedbackAnalysisFilter = Schemas['AnalysisFilter']
 
-export interface Pagination {
-  page: number
-  per_page: number
-  total: number
-  pages: number
-  has_next: boolean
-  has_prev: boolean
-}
+export type Pagination = Schemas['Pagination']
 
-export interface FeedbackListResponse {
-  items: Feedback[]
-  pagination: Pagination
-  sentiment: string | null
-  spam: FeedbackSpamFilter
-  analysis: FeedbackAnalysisFilter
-}
+export type FeedbackListResponse = Schemas['FeedbackListResponse']
 
 /** O que a lista faz com o que a IA marcou como spam (`?spam=`). */
-export type FeedbackSpamFilter = 'exclude' | 'include' | 'only'
+export type FeedbackSpamFilter = Schemas['SpamMode']
 
-/** Por que a reanálise em lote parou antes de terminar (`null` = seguiu normal). */
-export type ReanalyzeStoppedReason = 'provider_error'
+/**
+ * Por que a reanálise em lote parou antes de terminar (`null` = seguiu normal).
+ * A spec modela isto inline em `ReanalyzePendingResponse.stopped_reason`
+ * (`null | "provider_error"`); aqui extraímos só o valor não-nulo.
+ */
+export type ReanalyzeStoppedReason = NonNullable<
+  Schemas['ReanalyzePendingResponse']['stopped_reason']
+>
 
 /**
  * Resposta de POST /api/feedbacks/reanalyze-pending: um lote de reanálise dos
  * feedbacks que a IA não tinha conseguido analisar.
  */
-export interface ReanalyzePendingResponse {
-  /** Quantos feedbacks este lote tentou reanalisar. */
-  processed: number
-  /** Quantos a IA conseguiu analisar neste lote. */
-  analyzed: number
-  /** Quantos continuaram sem análise neste lote. */
-  failed: number
-  /** Quantos ainda estão sem análise depois deste lote. */
-  remaining: number
-  /** Preenchido quando o lote parou por falha do provedor. */
-  stopped_reason: ReanalyzeStoppedReason | null
-}
+export type ReanalyzePendingResponse = Schemas['ReanalyzePendingResponse']
 
 /* ---- Cofre de provedores (BYOK do operador) ---- */
 
-export interface ProviderCatalogEntry {
-  id: ProviderId
-  label: string
-  default_model: string
-  server_key_configured: boolean
-}
+export type ProviderCatalogEntry = Schemas['ProviderCatalogEntry']
 
-export interface ProviderCredential {
-  id: string
-  provider: ProviderId
-  model: string
-  priority: number
-  enabled: boolean
-  key_hint: string
-  last_verified_at: string | null
-  last_error_kind: string | null
-  /** Quando a credencial foi criada (ISO 8601 em UTC). */
-  created_at: string
-}
+export type ProviderCredential = Schemas['ProviderCredential']
 
-export interface ProvidersResponse {
-  vault_enabled: boolean
-  csrf_token: string
-  catalog: ProviderCatalogEntry[]
-  environment_chain: string[]
-  providers: ProviderCredential[]
-}
+export type ProvidersResponse = Schemas['ProvidersResponse']
 
-export interface ProviderTestResult {
-  ok: boolean
-  kind: string | null
-  latency_ms: number | null
-  checked_at: string
-  provider: ProviderCredential
-}
+export type ProviderTestResult = Schemas['ProviderTestResult']
 
-export interface ApiError {
-  error: string
-  code?: string
-  detail?: string
-}
+export type ApiError = Schemas['Error']
 
 /* ---- Sessão do painel (GET /auth/session, POST /login) ---- */
 
+/*
+ * MANTIDO À MÃO (diverge do gerado de propósito): a spec fixada marca
+ * `analysis_configured` como OBRIGATÓRIO, mas o painel precisa tolerar um
+ * backend mais antigo que ainda não envia o campo — nesse caso o app NÃO
+ * mostra o aviso de "nenhum provedor" (sem falso alarme). Por isso o campo é
+ * OPCIONAL aqui. A checagem em `api.contract.ts` garante que o gerado
+ * (obrigatório) continua atribuível a este tipo (opcional); se o backend
+ * mudar o tipo do campo, o typecheck quebra.
+ */
 export interface SessionResponse {
   /** Há DASHBOARD_PASSWORD no servidor (o painel exige login). */
   auth_enabled: boolean
@@ -131,33 +87,12 @@ export interface SessionResponse {
   csrf_token: string
 }
 
-export interface LoginResponse {
-  ok: boolean
-  /** Destino já filtrado pelo servidor (só caminhos locais). */
-  next: string
-}
+export type LoginResponse = Schemas['LoginResponse']
 
 /* ---- Estatísticas do dashboard (GET /api/stats) ---- */
 
-export interface SentimentCounts {
-  POSITIVO: number
-  NEGATIVO: number
-  INCONCLUSIVO: number
-}
+export type SentimentCounts = Schemas['SentimentCounts']
 
-export interface FeatureStat {
-  code: string
-  count: number
-  percentage: number
-}
+export type FeatureStat = Schemas['FeatureStat']
 
-export interface DashboardStats {
-  has_data: boolean
-  /** Feedbacks que a IA não conseguiu analisar. */
-  unanalyzed?: number
-  total_feedbacks?: number
-  sentiment_counts?: SentimentCounts
-  sentiment_percentages?: Record<keyof SentimentCounts, number>
-  top_features?: FeatureStat[]
-  recent_feedbacks?: Feedback[]
-}
+export type DashboardStats = Schemas['DashboardStats']
