@@ -3,33 +3,26 @@
  *
  * Este arquivo NAO e importado pelo app. Ele existe para o `vue-tsc`
  * (npm run typecheck) falhar se os tipos GERADOS do contrato OpenAPI do backend
- * (api.generated.ts) deixarem de ser compativeis com os tipos escritos A MAO que
- * o app usa (api.ts). Enquanto a migracao nao acontece, `api.ts` segue sendo a
- * fonte usada pelo app; esta checagem so garante que os dois nao divergem em
- * silencio.
+ * (api.generated.ts) deixarem de ser compativeis com o UNICO tipo que o painel
+ * ainda escreve A MAO em `api.ts`.
+ *
+ * Desde a migracao, `api.ts` so re-exporta aliases dos tipos gerados -- exceto
+ * `SessionResponse`, mantido a mao de proposito: a spec marca
+ * `analysis_configured` como OBRIGATORIO, mas o painel precisa tolerar um
+ * backend antigo que ainda nao envia o campo (por isso o declara OPCIONAL).
+ * Para os aliases, gerado e manual sao o MESMO tipo, entao nao ha o que
+ * divergir; a unica checagem que ainda protege algo e a de `SessionResponse`.
  *
  * Direcao da afirmacao: a RESPOSTA gerada tem de ser ATRIBUIVEL ao tipo escrito
- * a mao. Ou seja, o que o backend devolve (segundo o contrato) cabe no que o app
- * espera ler. As afirmacoes usam ATRIBUICAO REAL (posicao de parametro de
- * funcao), e nao o truque `A extends B` em tipo condicional: com tipos que tem
- * index signature (additionalProperties: true), o `extends` condicional diverge
- * da atribuibilidade de verdade -- confirmado nesta base. A atribuicao real e o
- * que o app sofre, entao e nela que o teste se apoia.
- *
- * Divergencias conhecidas e aceitas estao documentadas e tratadas abaixo;
- * qualquer OUTRA divergencia quebra o typecheck.
+ * a mao. Ou seja, o que o backend devolve (segundo o contrato, com o campo
+ * obrigatorio) cabe no que o app espera ler (com o campo opcional). Se o
+ * backend mudar o TIPO de `analysis_configured`, ou remover outro campo que o
+ * painel le, esta checagem quebra o typecheck em vez de passar despercebido.
+ * Usa ATRIBUICAO REAL (posicao de parametro de funcao), nao o truque
+ * `A extends B`, para bater com a atribuibilidade que o app de fato sofre.
  */
 import type { components } from './api.generated'
-import type {
-  Feedback,
-  FeedbackListResponse,
-  DashboardStats,
-  FeatureStat,
-  ReanalyzePendingResponse,
-  ProviderCredential,
-  ProvidersResponse,
-  SessionResponse,
-} from './api'
+import type { SessionResponse } from './api'
 
 type Schemas = components['schemas']
 
@@ -46,44 +39,11 @@ function assignableTo<Target>() {
 // Envolve tudo numa funcao nao exportada e nunca chamada: zero efeito em runtime.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function __contractChecks(): void {
-  /* ---- Respostas geradas atribuiveis ao tipo manual ---- */
-
-  // Feedback: identico nos dois lados (sentiment anulavel, todos obrigatorios).
-  const feedback = null as unknown as Schemas['Feedback']
-  assignableTo<Feedback>()(feedback)
-
-  // Listagem + paginacao: items/pagination/sentiment/spam/analysis batem.
-  const list = null as unknown as Schemas['FeedbackListResponse']
-  assignableTo<FeedbackListResponse>()(list)
-
-  // Reanalise em lote: stopped_reason e o mesmo union; demais campos iguais.
-  const reanalyze = null as unknown as Schemas['ReanalyzePendingResponse']
-  assignableTo<ReanalyzePendingResponse>()(reanalyze)
-
-  // Sessao do painel: identico.
+  // Sessao do painel: o tipo gerado (com `analysis_configured` obrigatorio) tem
+  // de ser atribuivel ao tipo manual (com o campo opcional, para tolerar
+  // backend antigo). Esta e a unica divergencia conhecida e aceita.
   const session = null as unknown as Schemas['SessionResponse']
   assignableTo<SessionResponse>()(session)
-
-  /* ---- Divergencias de forma CONHECIDAS e aceitas ---- */
-
-  // Estatisticas do painel: desde que a spec do backend marca como obrigatorios
-  // o `percentage` de FeatureStat e as chaves POSITIVO/NEGATIVO/INCONCLUSIVO de
-  // sentiment_counts e sentiment_percentages (os tres que a API sempre devolve
-  // quando ha dados), os tipos gerados cabem direto nos manuais, sem ajuste.
-  // DashboardStats.unanalyzed e opcional nos dois lados.
-  const stats = null as unknown as Schemas['DashboardStats']
-  assignableTo<DashboardStats>()(stats)
-
-  const featureStat = null as unknown as Schemas['FeatureStat']
-  assignableTo<FeatureStat>()(featureStat)
-
-  // (3) ProviderCredential.created_at: a API inclui `created_at` (obrigatorio)
-  // e o tipo manual do painel agora tambem o declara (obrigatorio). Os dois
-  // lados batem, entao o gerado continua ATRIBUIVEL ao manual sem narrow.
-  const credential = null as unknown as Schemas['ProviderCredential']
-  assignableTo<ProviderCredential>()(credential)
-  const providers = null as unknown as Schemas['ProvidersResponse']
-  assignableTo<ProvidersResponse>()(providers)
 }
 
 // Este arquivo e so de tipos/checagem. O export vazio o mantem como modulo.
