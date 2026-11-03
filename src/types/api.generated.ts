@@ -2,7 +2,7 @@
  * ARQUIVO GERADO -- NAO EDITE A MAO.
  *
  * Gerado por scripts/gen-api-types.mjs a partir do contrato OpenAPI do
- * backend (feedlens), fixado ao commit 47e3ee66648279273db404a74bb2eec4c8e6b3c5.
+ * backend (feedlens), fixado ao commit 28baddeb214fafadf4e2f1aad3985b028f720efc.
  * Para regenerar: suba o SHA em api-spec.version e rode `npm run gen:api`.
  */
 
@@ -1327,6 +1327,8 @@ export interface components {
         SessionResponse: {
             auth_enabled: boolean;
             authenticated: boolean;
+            /** @description Ha ao menos uma credencial de LLM utilizavel no servidor (chave de ambiente ou chave salva no cofre). So um booleano: nao revela quais provedores nem nenhuma chave. O painel usa isto para avisar quando nenhum provedor esta configurado. */
+            analysis_configured: boolean;
             csrf_token: string;
         };
         LoginRequest: {
