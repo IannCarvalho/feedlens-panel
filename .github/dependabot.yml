@@ -9,9 +9,14 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
     ignore:
-      # @primeuix/themes 3.x pertence ao PrimeVue 5, que ainda nao foi lancado.
-      # O painel usa PrimeVue 4.5.5, cujo tema e a linha @primeuix/themes 1.x.
-      # Ignoramos o bump de versao MAJOR ate migrar para o PrimeVue 5.
+      # PrimeVue 5 (e o @primeuix/themes 3.x que o acompanha) deixou de ser MIT:
+      # passou para a "PrimeUI License", com chave de licenca obrigatoria
+      # (@primeui/license-manager) e aviso na tela sem chave valida. O painel
+      # fica no PrimeVue 4.x (MIT), cujo tema e a linha @primeuix/themes 1.x.
+      # Minor e patch do 4.x continuam chegando. Remova estas linhas so depois
+      # de decidir a licenca (ver PR #28, fechado).
+      - dependency-name: "primevue"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "@primeuix/themes"
         update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
