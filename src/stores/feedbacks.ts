@@ -60,6 +60,15 @@ export const useFeedbacksStore = defineStore('feedbacks', () => {
     return review(id, { sentiment })
   }
 
+  /**
+   * Apaga o feedback e as funcionalidades pedidas dele (DELETE, 204 sem corpo).
+   * N??o tem volta: a tela pede confirma????o antes de chamar.
+   */
+  async function remove(id: string): Promise<void> {
+    await http.delete<void>(`/api/feedbacks/${id}`, true)
+    items.value = items.value.filter((item) => item.id !== id)
+  }
+
   /** Roda a IA de novo no feedback (a chamada espera a resposta da IA). */
   async function reanalyze(id: string): Promise<Feedback> {
     return http.post<Feedback>(`/api/feedbacks/${id}/reanalyze`, undefined, true)
@@ -88,6 +97,7 @@ export const useFeedbacksStore = defineStore('feedbacks', () => {
     review,
     setSpam,
     setSentiment,
+    remove,
     reanalyze,
     reanalyzePending,
   }
