@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import Card from 'primevue/card'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
 
 import { useFeedbacksStore } from '@/stores/feedbacks'
@@ -15,6 +16,7 @@ import type { Feedback, Sentiment } from '@/types/api'
 
 const store = useFeedbacksStore()
 const route = useRoute()
+const router = useRouter()
 const feedback = ref<Feedback | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -22,6 +24,9 @@ const reviewing = ref(false)
 const reviewError = ref<string | null>(null)
 const reviewNotice = ref<string | null>(null)
 const reanalyzing = ref(false)
+const confirmingDelete = ref(false)
+const deleting = ref(false)
+const deleteError = ref<string | null>(null)
 
 const sentimentOptions: { label: string; value: Sentiment }[] = [
   { label: 'Positivo', value: 'POSITIVO' },
@@ -87,6 +92,31 @@ async function changeSentiment(sentiment: Sentiment | null) {
     reviewError.value = e instanceof HttpError ? e.message : REVIEW_ERROR
   } finally {
     reviewing.value = false
+  }
+}
+
+function openDelete() {
+  deleteError.value = null
+  confirmingDelete.value = true
+}
+
+/** Apaga de vez (o servidor responde 204) e volta para a lista. */
+async function confirmDelete() {
+  const current = feedback.value
+  if (!current || deleting.value) return
+  deleting.value = true
+  deleteError.value = null
+  try {
+    await store.remove(current.id)
+    confirmingDelete.value = false
+    await router.push('/feedbacks')
+  } catch (e) {
+    deleteError.value =
+      e instanceof HttpError
+        ? e.message
+        : 'Não foi possível apagar o feedback. Tente de novo; se persistir, verifique se o servidor está no ar.'
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -209,6 +239,16 @@ onMounted(async () => {
               :loading="reviewing"
               @click="review(true)"
             />
+            <Button
+              class="fl-review__delete"
+              label="Apagar"
+              icon="pi pi-trash"
+              severity="danger"
+              text
+              size="small"
+              :disabled="reviewing || reanalyzing"
+              @click="openDelete"
+            />
           </div>
         </template>
       </Card>
@@ -225,6 +265,29 @@ onMounted(async () => {
         </template>
       </Card>
     </template>
+
+    <Dialog
+      v-model:visible="confirmingDelete"
+      modal
+      header="Apagar este feedback?"
+      :style="{ width: '28rem' }"
+    >
+      <p class="fl-delete__text">
+        O texto e as funcionalidades pedidas nele são apagados de vez e saem das listas e dos
+        gráficos. Não dá para desfazer pelo painel.
+      </p>
+      <Message v-if="deleteError" severity="error" :closable="false">{{ deleteError }}</Message>
+      <template #footer>
+        <Button label="Cancelar" text :disabled="deleting" @click="confirmingDelete = false" />
+        <Button
+          label="Apagar de vez"
+          icon="pi pi-trash"
+          severity="danger"
+          :loading="deleting"
+          @click="confirmDelete"
+        />
+      </template>
+    </Dialog>
   </section>
 </template>
 
@@ -286,6 +349,13 @@ onMounted(async () => {
 }
 .fl-review__select {
   min-width: 11rem;
+}
+.fl-review__delete {
+  margin-left: auto;
+}
+.fl-delete__text {
+  margin: 0 0 1rem;
+  line-height: 1.6;
 }
 .fl-features {
   list-style: none;

@@ -2,7 +2,7 @@
  * ARQUIVO GERADO -- NAO EDITE A MAO.
  *
  * Gerado por scripts/gen-api-types.mjs a partir do contrato OpenAPI do
- * backend (feedlens), fixado ao commit 28baddeb214fafadf4e2f1aad3985b028f720efc.
+ * backend (feedlens), fixado ao commit abf0a5d7ff7ca96277cb69c9624d40de7acd8340.
  * Para regenerar: suba o SHA em api-spec.version e rode `npm run gen:api`.
  */
 
@@ -225,7 +225,70 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Apaga um feedback e as funcionalidades pedidas dele (ciclo de vida/LGPD).
+         * @description Mesma protecao do PATCH: sessao do painel + CSRF. Nao aceita API_READ_TOKEN. Apaga tambem as requested_features. Sucesso devolve 204 sem corpo.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Token CSRF da sessao (de GET /auth/session ou GET /api/settings/providers). */
+                    "X-CSRF-Token"?: components["parameters"]["XCsrfToken"];
+                };
+                path: {
+                    /** @description UUID do feedback. */
+                    feedback_id: components["parameters"]["FeedbackId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Feedback apagado (sem corpo). */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description id malformado (nao e UUID). */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Nao autenticado no painel. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description DASHBOARD_PASSWORD ausente (auth_not_configured) ou CSRF invalido. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                /** @description Feedback nao encontrado. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         /**
